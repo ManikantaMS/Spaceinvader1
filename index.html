@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hammer Invaders</title>
+  <title>Iron Invaders</title>
   <style>
     body {
       margin: 0;
-      background: #1a1a1a;
+      background: #0a0a0a;
       overflow: hidden;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
     }
     canvas {
       display: block;
@@ -26,10 +27,10 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
 const player = {
-  x: canvas.width / 2 - 15,
-  y: canvas.height - 40,
+  x: canvas.width / 2 - 20,
+  y: canvas.height - 50,
   width: 40,
-  height: 20,
+  height: 40,
   speed: 6,
   bullets: []
 };
@@ -41,6 +42,7 @@ const enemySpacing = 50;
 let direction = 1;
 let gameOver = false;
 let gameWon = false;
+let score = 0;
 
 for (let row = 0; row < rows; row++) {
   for (let col = 0; col < cols; col++) {
@@ -69,22 +71,19 @@ document.addEventListener('keydown', (e) => {
 });
 
 function drawPlayer() {
-  ctx.fillStyle = '#ffcc00';
+  // Draw Iron Man-style head
+  ctx.fillStyle = '#ff0000';
   ctx.beginPath();
-  ctx.roundRect(player.x, player.y, player.width, player.height, 8);
+  ctx.arc(player.x + player.width / 2, player.y + player.height / 2, 20, 0, Math.PI * 2);
   ctx.fill();
-  drawHammer(player.x + player.width / 2, player.y);
-}
-
-function drawHammer(x, y) {
-  ctx.fillStyle = '#999';
-  ctx.fillRect(x - 2, y - 15, 4, 15); // handle
-  ctx.fillStyle = '#666';
-  ctx.fillRect(x - 6, y - 20, 12, 6); // head
+  ctx.fillStyle = '#00ffff';
+  ctx.beginPath();
+  ctx.arc(player.x + player.width / 2, player.y + player.height / 2, 6, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawBullets() {
-  ctx.fillStyle = 'white';
+  ctx.fillStyle = '#00ffff';
   player.bullets.forEach((bullet, index) => {
     bullet.y -= bullet.speed;
     ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
@@ -109,12 +108,12 @@ function drawEnemies() {
   }
   enemies.forEach(enemy => {
     if (enemy.alive) {
-      let gradient = ctx.createLinearGradient(enemy.x, enemy.y, enemy.x, enemy.y + enemy.height);
-      gradient.addColorStop(0, '#ff6666');
-      gradient.addColorStop(1, '#990000');
+      let gradient = ctx.createRadialGradient(enemy.x + 15, enemy.y + 15, 5, enemy.x + 15, enemy.y + 15, 30);
+      gradient.addColorStop(0, '#00ffff');
+      gradient.addColorStop(1, '#003344');
       ctx.fillStyle = gradient;
       ctx.beginPath();
-      ctx.roundRect(enemy.x, enemy.y, enemy.width, enemy.height, 6);
+      ctx.arc(enemy.x + 15, enemy.y + 15, 15, 0, Math.PI * 2);
       ctx.fill();
     }
   });
@@ -129,6 +128,7 @@ function detectCollisions() {
           bullet.y < enemy.y + enemy.height &&
           bullet.y + bullet.height > enemy.y) {
         enemy.alive = false;
+        score += 10;
         player.bullets.splice(bIndex, 1);
       }
     });
@@ -143,10 +143,18 @@ function drawMessage(message, color) {
   ctx.fillText(message, canvas.width / 2, canvas.height / 2);
 }
 
+function drawScore() {
+  ctx.fillStyle = '#fff';
+  ctx.font = '18px Segoe UI';
+  ctx.textAlign = 'left';
+  ctx.fillText('Score: ' + score, 10, 20);
+}
+
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawScore();
   if (gameOver) {
-    drawMessage('Game Over', '#ffffff');
+    drawMessage('Game Over', '#ff4444');
     return;
   }
   if (gameWon) {
@@ -159,19 +167,6 @@ function draw() {
   detectCollisions();
   requestAnimationFrame(draw);
 }
-
-CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
-  if (w < 2 * r) r = w / 2;
-  if (h < 2 * r) r = h / 2;
-  this.beginPath();
-  this.moveTo(x + r, y);
-  this.arcTo(x + w, y, x + w, y + h, r);
-  this.arcTo(x + w, y + h, x, y + h, r);
-  this.arcTo(x, y + h, x, y, r);
-  this.arcTo(x, y, x + w, y, r);
-  this.closePath();
-  return this;
-};
 
 draw();
 </script>
