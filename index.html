@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hammer Invaders</title>
+  <style>
+    body {
+      margin: 0;
+      background: #1a1a1a;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      background: #000;
+      border: 3px solid #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+<canvas id="game" width="600" height="400"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const player = {
+  x: canvas.width / 2 - 15,
+  y: canvas.height - 40,
+  width: 40,
+  height: 20,
+  speed: 6,
+  bullets: []
+};
+
+const enemies = [];
+const rows = 4;
+const cols = 8;
+const enemySpacing = 50;
+let direction = 1;
+let gameOver = false;
+let gameWon = false;
+
+for (let row = 0; row < rows; row++) {
+  for (let col = 0; col < cols; col++) {
+    enemies.push({
+      x: 50 + col * enemySpacing,
+      y: 30 + row * enemySpacing,
+      width: 30,
+      height: 30,
+      alive: true
+    });
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') player.x -= player.speed;
+  if (e.key === 'ArrowRight') player.x += player.speed;
+  if (e.key === ' ' || e.key === 'ArrowUp') {
+    player.bullets.push({
+      x: player.x + player.width / 2 - 3,
+      y: player.y,
+      width: 6,
+      height: 12,
+      speed: 8
+    });
+  }
+});
+
+function drawPlayer() {
+  ctx.fillStyle = '#ffcc00';
+  ctx.beginPath();
+  ctx.roundRect(player.x, player.y, player.width, player.height, 8);
+  ctx.fill();
+  drawHammer(player.x + player.width / 2, player.y);
+}
+
+function drawHammer(x, y) {
+  ctx.fillStyle = '#999';
+  ctx.fillRect(x - 2, y - 15, 4, 15); // handle
+  ctx.fillStyle = '#666';
+  ctx.fillRect(x - 6, y - 20, 12, 6); // head
+}
+
+function drawBullets() {
+  ctx.fillStyle = 'white';
+  player.bullets.forEach((bullet, index) => {
+    bullet.y -= bullet.speed;
+    ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+    if (bullet.y < 0) player.bullets.splice(index, 1);
+  });
+}
+
+function drawEnemies() {
+  let moveDown = false;
+  enemies.forEach(enemy => {
+    if (!enemy.alive) return;
+    enemy.x += direction;
+    if (enemy.x + enemy.width > canvas.width || enemy.x < 0) moveDown = true;
+  });
+  if (moveDown) {
+    direction *= -1;
+    enemies.forEach(enemy => {
+      enemy.y += 10;
+      enemy.x += direction;
+      if (enemy.y + enemy.height > player.y) gameOver = true;
+    });
+  }
+  enemies.forEach(enemy => {
+    if (enemy.alive) {
+      let gradient = ctx.createLinearGradient(enemy.x, enemy.y, enemy.x, enemy.y + enemy.height);
+      gradient.addColorStop(0, '#ff6666');
+      gradient.addColorStop(1, '#990000');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.roundRect(enemy.x, enemy.y, enemy.width, enemy.height, 6);
+      ctx.fill();
+    }
+  });
+}
+
+function detectCollisions() {
+  player.bullets.forEach((bullet, bIndex) => {
+    enemies.forEach((enemy, eIndex) => {
+      if (enemy.alive &&
+          bullet.x < enemy.x + enemy.width &&
+          bullet.x + bullet.width > enemy.x &&
+          bullet.y < enemy.y + enemy.height &&
+          bullet.y + bullet.height > enemy.y) {
+        enemy.alive = false;
+        player.bullets.splice(bIndex, 1);
+      }
+    });
+  });
+  if (enemies.every(e => !e.alive)) gameWon = true;
+}
+
+function drawMessage(message, color) {
+  ctx.fillStyle = color;
+  ctx.font = '32px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (gameOver) {
+    drawMessage('Game Over', '#ffffff');
+    return;
+  }
+  if (gameWon) {
+    drawMessage('YOU WIN!', '#00ffcc');
+    return;
+  }
+  drawPlayer();
+  drawBullets();
+  drawEnemies();
+  detectCollisions();
+  requestAnimationFrame(draw);
+}
+
+CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+  if (w < 2 * r) r = w / 2;
+  if (h < 2 * r) r = h / 2;
+  this.beginPath();
+  this.moveTo(x + r, y);
+  this.arcTo(x + w, y, x + w, y + h, r);
+  this.arcTo(x + w, y + h, x, y + h, r);
+  this.arcTo(x, y + h, x, y, r);
+  this.arcTo(x, y, x + w, y, r);
+  this.closePath();
+  return this;
+};
+
+draw();
+</script>
+</body>
+</html>
